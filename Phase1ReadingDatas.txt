@@ -1,0 +1,40 @@
+import pandas as pd
+
+# Step 2: Read the main dataset
+data = pd.read_csv('data.csv')
+
+# Step 3: Read the genre dataset
+genre_data = pd.read_csv('data_by_genres.csv')
+
+# Step 4: Read the year dataset
+year_data = pd.read_csv('data_by_year.csv')
+
+# Step 5: Read the artist dataset
+artist_data = pd.read_csv('data_by_artist.csv')
+
+# Step 6: Display the first two rows of each dataset
+print("\The main Data are:")
+print(data.head(2))
+
+print("\The existing genre are:")
+print(genre_data.head(2))
+
+print("\We have that years:")
+print(year_data.head(2))
+
+print("\Some artists")
+print(artist_data.head(2))
+
+# Step 7: Retrieve information about data and genre_data
+print("\nInformation about Datas:")
+print(data.info())
+
+print("\nInformation about Genre Datas:")
+print(genre_data.info())
+
+# Step 8: Create a decade column in data
+data['decade'] = data['year'].apply(lambda year: (year // 10) * 10)
+
+# Display the first few rows to verify the new column
+print("\nMain Dataset with Decade Column:")
+print(data[['year', 'decade']].head())
