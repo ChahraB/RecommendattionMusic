@@ -1,0 +1,124 @@
+import pandas as pd
+
+# Step 2: Read the main dataset
+data = pd.read_csv('data.csv')
+
+# Step 3: Read the genre dataset
+genre_data = pd.read_csv('data_by_genres.csv')
+
+# Step 4: Read the year dataset
+year_data = pd.read_csv('data_by_year.csv')
+
+# Step 5: Read the artist dataset
+artist_data = pd.read_csv('data_by_artist.csv')
+
+# Step 6: Display the first two rows of each dataset
+print("\The main Data are:")
+print(data.head(2))
+
+print("\The existing genre are:")
+print(genre_data.head(2))
+
+print("\We have that years:")
+print(year_data.head(2))
+
+print("\Some artists")
+print(artist_data.head(2))
+
+# Step 7: Retrieve information about data and genre_data
+print("\nInformation about Datas:")
+print(data.info())
+
+print("\nInformation about Genre Datas:")
+print(genre_data.info())
+
+# Step 8: Create a decade column in data
+data['decade'] = data['year'].apply(lambda year: (year // 10) * 10)
+
+# Display the first few rows to verify the new column
+print("\nMain Dataset with Decade Column:")
+print(data[['year', 'decade']].head())
+
+# Phase 2 annalysing datas 
+import seaborn as sns
+import matplotlib.pyplot as plt
+import plotly.express as px
+from wordcloud import WordCloud
+# Step 1: Visualize the distribution of tracks across decades
+plt.figure(figsize=(10, 6))
+sns.countplot(x='decade', data=data, palette='viridis')
+plt.title('Distribution Across Decades')
+plt.xlabel('Decade')
+plt.ylabel('Number of Tracks')
+plt.show()
+
+# Step 2:
+sound_features = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'liveness', 'valence']
+px.line(year_data, x='year', y=sound_features, title='Trend of Sound Features Over Decades').show()
+
+# Step 3:
+px.line(year_data, x='year', y='loudness', title='Trend of Loudness Over Decades').show()
+
+# Step 4:
+top10_genres = genre_data.nlargest(10, 'popularity')
+
+# Step 5: Plot trends top 10 genres
+px.bar(top10_genres, x='genres', y=['valence', 'energy', 'danceability', 'acousticness'],
+       barmode='group', title='Trend of Various Sound Features Over Top 10 Genres').show()
+
+# Step 6: word cloud genres
+comment_words = ' '.join(genre_data['genres'].dropna())
+wordcloud = WordCloud(width=800, height=800, background_color='white', stopwords=set(), max_words=40, min_font_size=10).generate(comment_words)
+plt.figure(figsize=(8, 8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Word Cloud of Genres')
+plt.show()
+
+# Step 7: word cloud artists
+comment_words = ' '.join(artist_data['artists'].dropna())
+wordcloud = WordCloud(width=800, height=800, background_color='white', stopwords=set(), min_word_length=3, max_words=40, min_font_size=10).generate(comment_words)
+plt.figure(figsize=(8, 8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Word Cloud of Artists')
+plt.show()
+
+# Step 8: Top 10 artists with most songs
+top10_most_song_produced_artists = artist_data.groupby('artists').size().reset_index(name='count').nlargest(10, 'count')
+print("\nTop 10 Artists with Most Songs:")
+print(top10_most_song_produced_artists[['count', 'artists']].sort_values('count', ascending=False))
+
+# Step 9: Top 10 artists popularity
+top10_popular_artists = artist_data.nlargest(10, 'popularity')
+print("\nTop 10 Artists with Highest Popularity:")
+print(top10_popular_artists[['popularity', 'artists']].sort_values('popularity', ascending=False))
+
+# Step 10: Conclusion
+print("""
+Conclusion:
+1. The majority of tracks are from the [1970].
+2. Energy and danceability have increased over the decades, while acousticness has decreased.
+5. The most prolific artists are ["Cats" 1981 Original London Cast
+  1 "Cats" 1983 Broadway Cast
+   2 "Fiddler On The Roof” Motion Picture Chorus
+   3 "Fiddler On The Roof” Motion Picture Orchestra
+   4 "Joseph And The Amazing Technicolor Dreamcoat"...
+5       "Joseph And The Amazing Technicolor Dreamcoat"...
+6                                   "Mama" Helen Teagarden
+7                                  "Test for Victor Young"
+8                                  "Weird Al" Yankovic]
+, and the most popular artists are [
+  20966        93.0 Ritt Momney
+14354        92.0        Lele Pons
+15070        90.0  Los Legendarios
+11764        89.0         Jerry Di
+7463         88.0           Emilee
+23687        88.0        Surf Mesa
+28263        88.0      salem ilese
+213          87.0              A7S
+2343         86.0          Beltito
+14378        86.0     Lenny Santos
+].
+4. The word clouds highlight the most common genres and artists in the dataset.
+""")
