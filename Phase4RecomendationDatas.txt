@@ -1,0 +1,308 @@
+import pandas as pd
+#phase 1
+# Step 2: Read the main dataset
+data = pd.read_csv('data.csv')
+
+# Step 3: Read the genre dataset
+genre_data = pd.read_csv('data_by_genres.csv')
+
+# Step 4: Read the year dataset
+year_data = pd.read_csv('data_by_year.csv')
+
+# Step 5: Read the artist dataset
+artist_data = pd.read_csv('data_by_artist.csv')
+
+# Step 6: Display the first two rows of each dataset
+print("\The main Data are:")
+print(data.head(2))
+
+print("\The existing genre are:")
+print(genre_data.head(2))
+
+print("\We have that years:")
+print(year_data.head(2))
+
+print("\Some artists")
+print(artist_data.head(2))
+
+# Step 7: Retrieve information about data and genre_data
+print("\nInformation about Datas:")
+print(data.info())
+
+print("\nInformation about Genre Datas:")
+print(genre_data.info())
+
+# Step 8: Create a decade column in data
+data['decade'] = data['year'].apply(lambda year: (year // 10) * 10)
+
+# Display the first few rows to verify the new column
+print("\nMain Dataset with Decade Column:")
+print(data[['year', 'decade']].head())
+
+#phase2
+import seaborn as sns
+import matplotlib.pyplot as plt
+import plotly.express as px
+from wordcloud import WordCloud
+# Step 1: Visualize the distribution of tracks across decades
+plt.figure(figsize=(10, 6))
+sns.countplot(x='decade', data=data, palette='viridis')
+plt.title('Distribution Across Decades')
+plt.xlabel('Decade')
+plt.ylabel('Number of Tracks')
+plt.show()
+
+# Step 2:
+sound_features = ['acousticness', 'danceability', 'energy', 'instrumentalness', 'liveness', 'valence']
+px.line(year_data, x='year', y=sound_features, title='Trend of Sound Features Over Decades').show()
+
+# Step 3:
+px.line(year_data, x='year', y='loudness', title='Trend of Loudness Over Decades').show()
+
+# Step 4:
+top10_genres = genre_data.nlargest(10, 'popularity')
+
+# Step 5: Plot trends top 10 genres
+px.bar(top10_genres, x='genres', y=['valence', 'energy', 'danceability', 'acousticness'],
+       barmode='group', title='Trend of Various Sound Features Over Top 10 Genres').show()
+
+# Step 6: word cloud genres
+comment_words = ' '.join(genre_data['genres'].dropna())
+wordcloud = WordCloud(width=800, height=800, background_color='white', stopwords=set(), max_words=40, min_font_size=10).generate(comment_words)
+plt.figure(figsize=(8, 8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Word Cloud of Genres')
+plt.show()
+
+# Step 7: word cloud artists
+comment_words = ' '.join(artist_data['artists'].dropna())
+wordcloud = WordCloud(width=800, height=800, background_color='white', stopwords=set(), min_word_length=3, max_words=40, min_font_size=10).generate(comment_words)
+plt.figure(figsize=(8, 8))
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis('off')
+plt.title('Word Cloud of Artists')
+plt.show()
+
+# Step 8: Top 10 artists with most songs
+top10_most_song_produced_artists = artist_data.groupby('artists').size().reset_index(name='count').nlargest(10, 'count')
+print("\nTop 10 Artists with Most Songs:")
+print(top10_most_song_produced_artists[['count', 'artists']].sort_values('count', ascending=False))
+
+# Step 9: Top 10 artists popularity
+top10_popular_artists = artist_data.nlargest(10, 'popularity')
+print("\nTop 10 Artists with Highest Popularity:")
+print(top10_popular_artists[['popularity', 'artists']].sort_values('popularity', ascending=False))
+
+# Step 10: Conclusion
+print("""
+Conclusion:
+1. The majority of tracks are from the [1970].
+2. Energy and danceability have increased over the decades, while acousticness has decreased.
+5. The most prolific artists are ["Cats" 1981 Original London Cast
+  1 "Cats" 1983 Broadway Cast
+   2 "Fiddler On The Roof” Motion Picture Chorus
+   3 "Fiddler On The Roof” Motion Picture Orchestra
+   4 "Joseph And The Amazing Technicolor Dreamcoat"...
+5       "Joseph And The Amazing Technicolor Dreamcoat"...
+6                                   "Mama" Helen Teagarden
+7                                  "Test for Victor Young"
+8                                  "Weird Al" Yankovic]
+, and the most popular artists are [
+  20966        93.0 Ritt Momney
+14354        92.0        Lele Pons
+15070        90.0  Los Legendarios
+11764        89.0         Jerry Di
+7463         88.0           Emilee
+23687        88.0        Surf Mesa
+28263        88.0      salem ilese
+213          87.0              A7S
+2343         86.0          Beltito
+14378        86.0     Lenny Santos
+].
+4. The word clouds highlight the most common genres and artists in the dataset.""")
+
+#phase3
+from sklearn.cluster import KMeans
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+
+data = data.dropna()
+genre_data = genre_data.dropna()
+# Step 1: K-means clustering(12 clusters)
+genre_features = genre_data.select_dtypes(include=['float64', 'int64'])
+kmeans_genres = KMeans(n_clusters=12, random_state=0)
+genre_data['cluster'] = kmeans_genres.fit_predict(genre_features)
+
+# Step 2: Visualize using t-SNE
+tsne = TSNE(n_components=2, random_state=0)
+genre_tsne = tsne.fit_transform(genre_features)
+genre_data['tsne_x'] = genre_tsne[:, 0]
+genre_data['tsne_y'] = genre_tsne[:, 1]
+
+# Plot t-SNE
+px.scatter(genre_data, x='tsne_x', y='tsne_y', color='cluster', hover_data=['genres'],
+           title='t-SNE Visualization of Genre Clusters').show()
+
+# Step 3: K-means clustering on song data (25 clusters)
+# Select relevant features for clustering
+song_features = data.select_dtypes(include=['float64', 'int64'])
+
+# Fit K-means model
+kmeans_songs = KMeans(n_clusters=25, random_state=0)
+data['cluster'] = kmeans_songs.fit_predict(song_features)
+
+# Step 4: Visualize using PCA
+pca = PCA(n_components=2, random_state=0)
+song_pca = pca.fit_transform(song_features)
+data['pca_x'] = song_pca[:, 0]
+data['pca_y'] = song_pca[:, 1]
+
+# Plot PCA
+px.scatter(data, x='pca_x', y='pca_y', color='cluster', hover_data=['name', 'artists'],
+           title='PCA Visualization of Song Clusters').show()
+
+#phase4
+# Install Spotipy library
+!pip install spotipy
+
+
+# Import necessary libraries
+import spotipy
+import numpy as np
+from spotipy.oauth2 import SpotifyClientCredentials
+from collections import defaultdict
+
+
+# Step 1: client credentials 
+
+client_id =("7892e1fa1cef4a829bccc90d0ad4c30c")
+client_secret =("b04ae782b05448f3b196af5b0fd3d6b9")
+
+# Step 2: Create an instance 
+client_credentials_manager = SpotifyClientCredentials(client_id=client_id, client_secret=client_secret)
+sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+# Step 3: Define a function to find song details 
+def find_song(name, year, dataset):
+   
+  
+    song_data = dataset[(dataset['name'] == name) & (dataset['year'] == year)]
+    if not song_data.empty:
+        return song_data.iloc[0]
+    
+    try:
+        results = sp.search(q=f"track:{name} year:{year}", limit=1)
+        if results['tracks']['items']:
+            track = results['tracks']['items'][0]
+            audio_features = sp.audio_features(track['id'])[0]
+            song_data = {
+                'name': track['name'],
+                'year': int(track['album']['release_date'][:4]),
+                'acousticness': audio_features['acousticness'],
+                'danceability': audio_features['danceability'],
+                'energy': audio_features['energy'],
+                'instrumentalness': audio_features['instrumentalness'],
+                'liveness': audio_features['liveness'],
+                'loudness': audio_features['loudness'],
+                'speechiness': audio_features['speechiness'],
+                'tempo': audio_features['tempo'],
+                'valence': audio_features['valence']
+            }
+            return song_data
+    except:
+        pass
+    
+    return None
+
+# Step 4: Define a function to fetch song details 
+def get_song_data(song, dataset):
+   
+    name = song['name']
+    year = song['year']
+    song_data = find_song(name, year, dataset)
+    if song_data is not None:
+        return song_data
+    else:
+        print(f"Warning: {name} ({year}) not found in Spotify.")
+        return None
+
+# Step 5: Define a function to calculate the mean vector of numerical features
+def get_mean_vector(song_list, dataset):
+    
+    song_vectors = []
+    for song in song_list:
+        song_data = get_song_data(song, dataset)
+        if song_data is not None:
+            song_vector = [
+                song_data['acousticness'],
+                song_data['danceability'],
+                song_data['energy'],
+                song_data['instrumentalness'],
+                song_data['liveness'],
+                song_data['loudness'],
+                song_data['speechiness'],
+                song_data['tempo'],
+                song_data['valence']
+            ]
+            song_vectors.append(song_vector)
+    
+    if song_vectors:
+        return np.mean(song_vectors, axis=0)
+    else:
+        return None
+
+# Step 6: Define a function to flatten a list of dictionaries
+def flatten_dict_list(dict_list):
+   
+    flattened_dict = defaultdict(list)
+    for key in dict_list[0].keys():
+        for d in dict_list:
+            flattened_dict[key].append(d[key])
+    return flattened_dict
+
+# Step 7: recommend similar songs
+def recommend_songs(song_list, dataset, n_recommendations=5):
+    
+    mean_vector = get_mean_vector(song_list, dataset)
+    if mean_vector is None:
+        print("No songs found in the dataset or Spotify.")
+        return []
+  
+    dataset['similarity'] = dataset.apply(
+        lambda row: np.dot(mean_vector, [
+            row['acousticness'],
+            row['danceability'],
+            row['energy'],
+            row['instrumentalness'],
+            row['liveness'],
+            row['loudness'],
+            row['speechiness'],
+            row['tempo'],
+            row['valence']
+        ]), axis=1
+    )
+    
+    recommendations = dataset.sort_values('similarity', ascending=False).head(n_recommendations)
+    return recommendations[['name', 'year', 'artists']]
+
+dataset = pd.read_csv('data.csv')
+
+# Example input songs
+input_songs = [
+    {'name': 'Shape of You', 'year': 2017},
+    {'name': 'Blinding Lights', 'year': 2020}
+]
+
+# Get recommendations
+recommendations = recommend_songs(input_songs, dataset)
+print("\nRecommended Songs:")
+print(recommendations)
+# Step 8: Test the recommendation system
+input_songs = [
+    {'name': 'Dance Monkey', 'year': 2019},
+    {'name': 'Uptown Funk', 'year': 2014}
+]
+
+recommendations = recommend_songs(input_songs, dataset)
+print("\nRecommended Songs:")
+print(recommendations)   
